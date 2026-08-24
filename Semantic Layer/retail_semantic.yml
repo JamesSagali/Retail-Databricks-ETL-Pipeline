@@ -1,0 +1,271 @@
+version: 1.1
+
+source: retail_b.retail_gold.fact_sales
+
+joins:
+  - name: products
+    source: retail_b.retail_gold.dim_product
+    "on": source.product_id = products.product_id
+  - name: calendar
+    source: retail_b.retail_gold.dim_calendar
+    "on": source.transaction_date = calendar.date
+  - name: customers
+    source: retail_b.retail_gold.dim_customer
+    "on": source.customer_id = customers.customer_id
+
+comment: Retail metrics for sales performance and product analysis
+
+dimensions:
+  - name: Product Category
+    expr: products.category
+    comment: Product category from dimension table
+    display_name: Product Category
+
+  - name: Product Subcategory
+    expr: products.subcategory
+    comment: Product subcategory for detailed analysis
+    display_name: Product Subcategory
+
+  - name: Product Brand
+    expr: products.brand
+    comment: Brand of the product
+    display_name: Product Brand
+
+  - name: Product Segment
+    expr: products.product_segment
+    comment: Product segment classification
+    display_name: Product Segment
+
+  - name: Product Name
+    expr: products.product_name
+    comment: Name of the product
+    display_name: Product Name
+
+  - name: Supplier Name
+    expr: products.supplier_name
+    comment: Supplier of the product
+    display_name: Supplier Name
+
+  - name: Sales Channel
+    expr: source.sales_channel
+    comment: Channel through which sale was made
+    display_name: Sales Channel
+
+  - name: Payment Mode
+    expr: source.payment_mode
+    comment: Method of payment used
+    display_name: Payment Mode
+
+  - name: Stage Name
+    expr: source.stage_name
+    comment: Sales stage of the opportunity
+    display_name: Stage Name
+
+  - name: Store ID
+    expr: source.store_id
+    comment: Store identifier
+    display_name: Store ID
+
+  - name: Year
+    expr: calendar.year
+    comment: Year of transaction
+    display_name: Year
+
+  - name: Quarter
+    expr: calendar.quarter
+    comment: Quarter of transaction
+    display_name: Quarter
+
+  - name: Month
+    expr: calendar.month
+    comment: Month number of transaction
+    display_name: Month
+
+  - name: Month Name
+    expr: calendar.month_name
+    comment: Month name of transaction
+    display_name: Month Name
+
+  - name: Week of Year
+    expr: calendar.week_of_year
+    comment: Week number of the year
+    display_name: Week of Year
+
+  - name: Day of Week
+    expr: calendar.day_of_week
+    comment: Day of week as number
+    display_name: Day of Week
+
+  - name: Day Name
+    expr: calendar.day_name
+    comment: Name of the day
+    display_name: Day Name
+
+  - name: Is Weekday
+    expr: calendar.is_weekday
+    comment: Whether the transaction was on a weekday
+    display_name: Is Weekday
+
+  - name: Is Weekend
+    expr: calendar.is_weekend
+    comment: Whether the transaction was on a weekend
+    display_name: Is Weekend
+
+  - name: Customer Name
+    expr: customers.customer_name
+    comment: Name of the customer
+    display_name: Customer Name
+
+  - name: Customer Type
+    expr: customers.customer_type
+    comment: Type or segment of customer
+    display_name: Customer Type
+
+  - name: Billing City
+    expr: customers.billing_city
+    comment: Customer's billing city
+    display_name: Billing City
+
+  - name: Billing State
+    expr: customers.billing_state
+    comment: Customer's billing state
+    display_name: Billing State
+
+  - name: Billing Country
+    expr: customers.billing_country
+    comment: Customer's billing country
+    display_name: Billing Country
+
+  - name: Industry
+    expr: customers.industry
+    comment: Customer's industry sector
+    display_name: Industry
+
+  - name: Customer Size
+    expr: CASE WHEN customers.number_of_employees < 50 THEN 'Small' WHEN customers.number_of_employees
+      < 250 THEN 'Medium' WHEN customers.number_of_employees < 1000 THEN 'Large' ELSE
+      'Enterprise' END
+    comment: Customer size based on number of employees
+    display_name: Customer Size
+
+measures:
+  - name: Total Revenue
+    expr: SUM(amount)
+    comment: Sum of all sales amounts
+    display_name: Total Revenue
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+
+  - name: Total Quantity
+    expr: SUM(quantity)
+    comment: Total units sold
+    display_name: Total Quantity
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 0
+
+  - name: Transaction Count
+    expr: COUNT(1)
+    comment: Number of transactions
+    display_name: Transaction Count
+
+  - name: Average Order Value
+    expr: AVG(amount)
+    comment: Average transaction amount
+    display_name: Average Order Value
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+
+  - name: Total Discount
+    expr: SUM(discount_amount)
+    comment: Total discount amount given
+    display_name: Total Discount
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+
+  - name: Number of Customers
+    expr: COUNT(DISTINCT source.customer_id)
+    comment: Number of distinct customers
+    display_name: Number of Customers
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 0
+
+  - name: Average Discount Per Transaction
+    expr: AVG(discount_amount)
+    comment: Average discount amount per transaction
+    display_name: Average Discount Per Transaction
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+
+  - name: Discount Percentage
+    expr: "SUM(discount_amount) / NULLIF(SUM(amount + discount_amount), 0) * 100"
+    comment: Percentage of revenue that was discounted
+    display_name: Discount Percentage
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 2
+
+  - name: Average Selling Price
+    expr: AVG(selling_price)
+    comment: Average selling price per unit
+    display_name: Average Selling Price
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
+
+  - name: Total Customer Employees
+    expr: SUM(customers.number_of_employees)
+    comment: Total number of employees across all customers
+    display_name: Total Customer Employees
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 0
+
+  - name: Average Customer Employees
+    expr: AVG(customers.number_of_employees)
+    comment: Average number of employees per customer
+    display_name: Average Customer Employees
+    format:
+      type: number
+      decimal_places:
+        type: exact
+        places: 0
+
+  - name: Revenue Per Customer Employee
+    expr: "SUM(amount) / NULLIF(SUM(customers.number_of_employees), 0)"
+    comment: Revenue generated per customer employee
+    display_name: Revenue Per Customer Employee
+    format:
+      type: currency
+      currency_code: USD
+      decimal_places:
+        type: exact
+        places: 2
