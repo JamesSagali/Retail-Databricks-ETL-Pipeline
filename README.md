@@ -8,43 +8,14 @@ End-to-end retail analytics pipeline built on Databricks, ingesting from Postgre
 
 ## Architecture
 
-```
-┌─────────────┐   ┌──────────────┐   ┌────────────────┐
-│  PostgreSQL │   │  Salesforce  │   │  File Storage   │
-│  (NeonDB)   │   │  (CSV → SF)  │   │  (UC Volume)    │
-└──────┬──────┘   └──────┬───────┘   └───────┬─────────┘
-       │ Lakeflow        │ Lakeflow          │ Autoloader
-       │ Connect         │ Connect           │ (PySpark)
-       ▼                 ▼                   ▼
-┌───────────────────────────────────────────────────────┐
-│                     BRONZE LAYER                       │
-│  postgres_bronze.*  salesforce_bronze.*  blob_bronze.transactions │
-└───────────────────────────┬─────────────────────────────┘
-                             │ Lakeflow Declarative Pipeline
-                             ▼
-┌───────────────────────────────────────────────────────┐
-│                SILVER LAYER (retail_silver)             │
-│  product_catalog · inventory · account · opportunities · transactions │
-└───────────────────────────┬─────────────────────────────┘
-                             ▼
-┌───────────────────────────────────────────────────────┐
-│                 GOLD LAYER (retail_gold)                │
-│  dim_product · dim_customer · dim_calendar               │
-│  fact_sales · fact_inventory (standalone)                │
-└───────────────────────────┬─────────────────────────────┘
-                             ▼
-┌───────────────────────────────────────────────────────┐
-│          SEMANTIC LAYER (retail_semantic)                │
-│          Metric View: retail_metrics                     │
-└───────────────────────────┬─────────────────────────────┘
-                             ▼
-               Dashboards  +  Genie Space (AI/BI)
-```
+
+<img width="1496" height="753" alt="image" src="https://github.com/user-attachments/assets/3a2241ee-b093-440a-975c-969905aa83eb" />
+
 
 **Catalog:** `retail_b` (Unity Catalog)
 **Schemas:** `postgres_bronze`, `salesforce_bronze`, `blob_bronze`, `volumes_schema`, `retail_silver`, `retail_gold`, `retail_semantic`
 
----
+
 
 ## Data Sources & Ingestion
 
