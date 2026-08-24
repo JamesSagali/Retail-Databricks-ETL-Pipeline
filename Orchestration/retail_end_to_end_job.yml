@@ -1,0 +1,33 @@
+resources:
+  jobs:
+    Retail_End_to_End:
+      name: Retail End-to-End
+      tasks:
+        - task_key: postgres_to_bronze
+          pipeline_task:
+            pipeline_id: 2468cf6c-3306-48c7-9831-bb67ffb4cc84
+        - task_key: salesforce_to_bronze
+          depends_on:
+            - task_key: postgres_to_bronze
+          pipeline_task:
+            pipeline_id: 95420008-f466-435c-b9c0-09d6264f2a44
+        - task_key: blob_to_bronze
+          depends_on:
+            - task_key: salesforce_to_bronze
+          notebook_task:
+            notebook_path: /Workspace/Users/sagalijames@gmail.com/retail_b/blob_to_bronze
+            source: WORKSPACE
+        - task_key: silver_and_gold
+          depends_on:
+            - task_key: blob_to_bronze
+          pipeline_task:
+            pipeline_id: e6d10e3c-65e9-4b0e-b856-602f55da50c0
+        - task_key: dashboard_refresh
+          depends_on:
+            - task_key: silver_and_gold
+          dashboard_task:
+            subscription: {}
+            dashboard_id: 01f19f8bd33b1efd8ee0fa1a6fb3e02d
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
