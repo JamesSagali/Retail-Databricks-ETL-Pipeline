@@ -1,6 +1,5 @@
-# Retail-Databricks-ETL-Pipeline
-
 # Retail Data Pipeline — Databricks Lakehouse (Medallion Architecture)
+Simulates a retail organization consolidating operational data (sales, CRM, inventory) into a governed lakehouse for self-serve analytics — built to practice production-grade ingestion, CDC/SCD handling, and semantic layer design on Databricks.
 
 End-to-end lakehouse pipeline unifying retail data from multiple systems for analytics and self-serve BI.
 
@@ -30,15 +29,20 @@ End-to-end lakehouse pipeline unifying retail data from multiple systems for ana
 | Salesforce — `Account`, `Opportunity` | Lakeflow Connect (Salesforce connector), history tracking enabled → auto SCD Type 2 | `retail_b.salesforce_bronze.*` | Incremental |
 | Flat files (`transactions` CSV) | Unity Catalog managed Volume + Auto Loader (PySpark, notebook) | `retail_b.blob_bronze.transactions` | Incremental (file-based) |
 
-Credentials for the PostgreSQL connection are stored in a Databricks secret scope / Unity Catalog connection object, not in code or notebooks.
+### Why SCD2 for product_catalog, SCD1 for inventory?
 
-Salesforce ingestion pulls in all default Salesforce objects, most of which are empty; only `Account` and `Opportunity` are selected for downstream use.
+Product attributes (price, category, segment) change infrequently but the history of those changes matters for historical analysis — e.g., understanding margin trends before/after a price change. 
+Inventory levels, by contrast, change constantly and only the current state is useful for downstream reporting, so overwriting in place (SCD1) avoids ballooning row counts with no analytical benefit
+
+### Salesforce history tracking → automatic SCD2
+Rather than hand-rolling change-tracking logic for CRM data, enabling Salesforce's native history tracking and letting Lakeflow Connect handle SCD2 automatically reduces custom code and keeps the ingestion logic declarative and less error-prone.
 
 ---
 
 ## Bronze → Silver Transformations
 
 Built as a Lakeflow (Spark) Declarative Pipeline, one streaming table per source, with standardization and data quality checks applied per table.
+Declarative pipelines give built-in data quality expectations, automatic dependency resolution between streaming tables, and cleaner lineage in Unity Catalog than a chain of manually orchestrated notebooks would. Since every source lands as a streaming table, this also made incremental processing the default rather than something bolted on afterward.
 
 | Silver Table | Source | Key Transformations |
 |---|---|---|
@@ -56,6 +60,8 @@ Built as a Lakeflow (Spark) Declarative Pipeline, one streaming table per source
 
 Materialized as views over clean Silver tables — no physical duplication.
 
+Dimensions here are simple filters/renames over Silver tables with no heavy aggregation, so a view avoids unnecessary storage duplication and keeps the Gold layer automatically in sync with Silver — no separate refresh step to maintain or forget.
+
 | Table | Source | Notes |
 |---|---|---|
 | `dim_product` | `retail_silver.product_catalog` | Filtered to `is_active = true` |
@@ -70,6 +76,10 @@ Materialized as views over clean Silver tables — no physical duplication.
 | `fact_inventory` | One row per inventory record | Notebook (run-once, not part of the recurring pipeline) | Not part of the star schema — used standalone for inventory analysis and dashboards |
 
 ---
+### Why fact_inventory is kept outside the star schema
+
+Inventory doesn't share a clean conformed grain with the sales-based facts (it's a snapshot, not a transaction), so forcing it into the same star schema would mean fabricating relationships that don't reflect the real grain of the data. Keeping it standalone was a deliberate choice to avoid a misleading model, at the cost of it not being queryable through the same semantic layer.
+
 
 ## Semantic Layer — Metric Views
 
@@ -88,7 +98,9 @@ Materialized as views over clean Silver tables — no physical duplication.
 
 ## Orchestration
 
-Single Databricks Job (**Retail End-to-End**) chaining all layers:
+Single end-to-end Databricks Job over separate per-layer jobs
+
+Chaining Bronze → Silver/Gold → dashboard refresh as one job with explicit task dependencies keeps the whole pipeline auditable in one run history and guarantees the dashboard never refreshes against a partially-updated Gold layer.
 
 ```
 postgres_to_bronze → salesforce_to_bronze → blob_to_bronze → silver_and_gold → dashboard_refresh
