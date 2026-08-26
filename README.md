@@ -2,7 +2,12 @@
 
 # Retail Data Pipeline — Databricks Lakehouse (Medallion Architecture)
 
-End-to-end retail analytics pipeline built on Databricks, ingesting from PostgreSQL (NeonDB), Salesforce, and file-based storage, transformed through a Bronze → Silver → Gold medallion architecture, exposed via a governed semantic layer, and consumed through dashboards and a Genie natural-language agent.
+End-to-end lakehouse pipeline unifying retail data from multiple systems for analytics and self-serve BI.
+
+- Ingestion: PostgreSQL (NeonDB), Salesforce, and file-based sources
+- Transformation: Bronze → Silver → Gold medallion architecture on Databricks
+- Governance: Unity Catalog-backed semantic layer with defined metrics/access controls
+- Consumption: BI dashboards + natural-language querying via Databricks Genie
 
 ---
 
